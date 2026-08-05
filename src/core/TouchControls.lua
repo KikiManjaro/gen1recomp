@@ -28,6 +28,7 @@
 
 local Input = require("src.core.Input")
 local SafeArea = require("src.core.SafeArea")
+local Haptics = require("src.core.Haptics")
 
 local TouchControls = {}
 
@@ -401,7 +402,10 @@ end
 local function pressBtn(self, btn)
   local n = (self.held[btn] or 0) + 1
   self.held[btn] = n
-  if n == 1 then Input:overlayPressed(btn) end
+  if n == 1 then
+    Input:overlayPressed(btn)
+    Haptics.pulse()
+  end
 end
 
 local function releaseBtn(self, btn)

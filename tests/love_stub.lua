@@ -367,6 +367,7 @@ stub.image = {
 -- check, the touch-overlay filter) take their desktop branch.
 stub.system = {
   getOS = function() return "OS X" end,
+  vibrate = noop,
 }
 
 -- Desktop / headless: full-window safe area (matches LÖVE's fallback).

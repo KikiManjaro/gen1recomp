@@ -1059,6 +1059,7 @@ function Game:applyOptions(opts)
     if FrameCap.current > caps.fpsMax then FrameCap.apply(caps.fpsMax) end
   end
   Input:applyBindings(opts.bindings)
+  require("src.core.Haptics").applyOptions(opts)
   TouchControls:applyOptions(opts)
   -- heal soft-bricked APK installs that already saved gbcfx > 0 (#136)
   if gbcCleared then self:writeOptions() end

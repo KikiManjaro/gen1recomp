@@ -53,12 +53,15 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
 import android.util.DisplayMetrics;
@@ -437,8 +440,21 @@ public class GameActivity extends SDLActivity {
 
     @Keep
     public static void vibrate(double seconds) {
-        if (vibrator != null) {
-            vibrator.vibrate((long) (seconds * 1000.));
+        if (vibrator == null) return;
+        // The deprecated Vibrator.vibrate(ms) routes as USAGE_UNKNOWN, which
+        // several OEMs (MIUI/HyperOS) set to OFF in their vibration-intensity
+        // settings -- the call succeeds but the amplitude is scaled to zero.
+        // Use the modern API with a game usage (never UNKNOWN/TOUCH, both OFF
+        // there) and max amplitude so the pulse is actually felt.
+        int ms = (int) Math.max(1, Math.min(Integer.MAX_VALUE, seconds * 1000.));
+        if (Build.VERSION.SDK_INT >= 26) {
+            vibrator.vibrate(
+                VibrationEffect.createOneShot(ms, 255),
+                new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .build());
+        } else {
+            vibrator.vibrate(ms);
         }
     }
 

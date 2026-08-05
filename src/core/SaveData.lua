@@ -305,6 +305,9 @@ function SaveData.defaultOptions()
     -- layout (#633).  Pre-#633 files stored one top-level positions table;
     -- TouchControls.normalizeConfig folds it into both orientations on load.
     touchControls = { enabled = true },
+    -- haptic pulse on touch-overlay presses (see src/core/Haptics.lua);
+    -- a 0..10 level, 0 = OFF (the default)
+    haptics = 0,
   }
 end
 

@@ -28,6 +28,7 @@ local Runtime = require("src.mods.Runtime")
 local OptionRows = require("src.ui.OptionRows")
 local Renderer = require("src.render.Renderer")
 local Strings = require("src.core.Strings")
+local Haptics = require("src.core.Haptics")
 
 local OptionsMenu = {}
 OptionsMenu.__index = OptionsMenu
@@ -437,6 +438,19 @@ local function buildRows(game)
         require("src.core.TouchControls"):applyOptions(o)
         return true
       end },
+    -- haptic feedback on the on-screen pad; same mobile gate as TOUCH PAD.
+    -- A single 0..10 level, 0 = OFF (see src/core/Haptics.lua).
+    { id = "hapticLevel", label = Strings("HAPTIC LEVEL"),
+      value = function(g)
+        local level = Haptics.normalize(g.save.options.haptics)
+        return level == 0 and Strings("OFF") or tostring(level)
+      end,
+      step = function(g, dir)
+        local o = g.save.options
+        o.haptics = math.max(0, math.min(10, Haptics.normalize(o.haptics) + (dir or 1)))
+        Haptics.applyOptions(o)
+        return true
+      end },
   }
   -- issue #136: hide GBC FX on Android/iOS -- the present shader soft-bricks
   if not GBCFX.isSupported() then
@@ -454,8 +468,9 @@ local function buildRows(game)
     end
     rows = filtered
   end
-  -- TOUCH PAD only where the overlay can appear (mobile, or desktop with
-  -- POKEPORT_TOUCH=1).  POKEPORT_TOUCH=0 forces it off everywhere.
+  -- TOUCH PAD / HAPTIC LEVEL only where the overlay can appear (mobile, or
+  -- desktop with POKEPORT_TOUCH=1).  POKEPORT_TOUCH=0 forces them off
+  -- everywhere.
   do
     local env = os.getenv("POKEPORT_TOUCH")
     local osName = love.system and love.system.getOS and love.system.getOS()
@@ -464,7 +479,9 @@ local function buildRows(game)
     if not show then
       local filtered = {}
       for _, row in ipairs(rows) do
-        if row.id ~= "touchControls" then filtered[#filtered + 1] = row end
+        if row.id ~= "touchControls" and row.id ~= "hapticLevel" then
+          filtered[#filtered + 1] = row
+        end
       end
       rows = filtered
     end
