@@ -3,7 +3,6 @@
 -- pass-through; good enough for our own messages.
 
 local Json = {}
-
 local function encodeValue(v, out)
   local t = type(v)
   if v == nil then
@@ -11,6 +10,9 @@ local function encodeValue(v, out)
   elseif t == "boolean" then
     out[#out + 1] = v and "true" or "false"
   elseif t == "number" then
+    -- Guard against inf/nan leaking into the wire (JSON has no literal for them)
+    assert(v == v and v ~= math.huge and v ~= -math.huge,
+      "cannot encode non-finite number")
     out[#out + 1] = string.format("%.17g", v)
   elseif t == "string" then
     out[#out + 1] = '"' .. v:gsub('[%c"\\]', function(c)
@@ -22,11 +24,19 @@ local function encodeValue(v, out)
       return string.format("\\u%04x", c:byte())
     end) .. '"'
   elseif t == "table" then
-    -- array if [1..n] contiguous
+    -- array if [1..n] contiguous and no non-integer keys
     local n = #v
     local isArray = n > 0
     if not isArray then
       isArray = next(v) == nil -- empty table -> []
+    else
+      -- verify no holes or non-sequential keys slipped in (e.g. {[1]=1,[3]=3})
+      for k in pairs(v) do
+        if type(k) ~= "number" or k < 1 or k > n or k % 1 ~= 0 then
+          isArray = false
+          break
+        end
+      end
     end
     if isArray then
       out[#out + 1] = "["
@@ -158,14 +168,22 @@ decodeValue = function(s, i)
   else
     local numStr = s:match("^-?%d+%.?%d*[eE]?[-+]?%d*", i)
     assert(numStr and #numStr > 0, "unexpected character '" .. c .. "'")
+    -- Reject trailing \"e\" / \"e+\" with no exponent digits (e.g. \"1e\", \"1e+\")
+    if numStr:match("[eE][-+]?$") then
+      error("invalid number '" .. numStr .. "'")
+    end
     return tonumber(numStr), i + #numStr
   end
 end
 
 function Json.decode(s)
-  local ok, v = pcall(function()
-    local val = select(1, decodeValue(s, 1))
-    return val
+  local ok, v, pos = pcall(function()
+    local val, nextPos = decodeValue(s, 1)
+    nextPos = skipWs(s, nextPos)
+    if nextPos <= #s then
+      error("trailing data after JSON value at position " .. nextPos)
+    end
+    return val, nextPos
   end)
   if ok then return v end
   return nil, v
