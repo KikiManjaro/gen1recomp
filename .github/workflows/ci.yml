@@ -371,6 +371,16 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  luacheck:
+    name: luacheck (src)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install luacheck
+        run: sudo apt-get update && sudo apt-get install -y luarocks && sudo luarocks install luacheck
+      - name: Run luacheck
+        run: luacheck src --config .luacheckrc
+
   headless:
     name: headless suites (no ROM)
     runs-on: ubuntu-latest
