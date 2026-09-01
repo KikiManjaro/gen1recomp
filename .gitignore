@@ -68,3 +68,4 @@ mobile/ios/bundle_id.local
 /ports/uwp/build/
 /ports/uwp/third_party/*/source/
 /ports/uwp/third_party/angle/depot_tools/
+!.editorconfig
